@@ -75,8 +75,8 @@ h+='<h1>Lift</h1><p class="sub">Log each set. Beat last time by a rep or a littl
 var ks=Object.keys(g);
 if(!ks.length)h+='<div class="card"><div class="empty">No sets logged for this day. Add one above.</div></div>';
 ks.forEach(function(k){var prev=S.lifts.filter(function(x){return x.ex===k&&x.d<t});var last="";
-if(prev.length){var pd=prev.reduce(function(a,x){return x.d>a?x.d:a},"");var best=prev.filter(function(x){return x.d===pd}).sort(function(a,b){return b.w-a.w||b.r-a.r})[0];last='Last time ('+nice(pd)+'): best set '+best.w+' lb × '+best.r}
-h+='<div class="card"><div class="grp">'+esc(k)+'</div>'+(last?'<div class="note">'+last+'</div>':'')+'<ul>'+g[k].map(function(x,i){return '<li><span>Set '+(i+1)+': '+x.w+' lb × '+x.r+'</span><button class="ghost" data-del="lifts" data-id="'+x.id+'" aria-label="Delete set">Delete</button></li>'}).join("")+'</ul></div>'});
+if(prev.length){var pd=prev.reduce(function(a,x){return x.d>a?x.d:a},"");var best=prev.filter(function(x){return x.d===pd}).sort(function(a,b){return b.w-a.w||b.r-a.r})[0];last='Last time ('+nice(pd)+'): best set '+best.r+' x '+best.w}
+h+='<div class="card"><div class="grp">'+esc(k)+'</div>'+(last?'<div class="note">'+last+'</div>':'')+'<ul>'+g[k].map(function(x,i){return '<li><span>Set '+(i+1)+': '+x.r+' x '+x.w+'</span><button class="ghost" data-del="lifts" data-id="'+x.id+'" aria-label="Delete set">Delete</button></li>'}).join("")+'</ul></div>'});
 }
 if(tab==="weight"){
 var ws=S.weights.slice().sort(function(a,b){return a.d<b.d?-1:1}),last10=ws.slice(-30);
