@@ -36,6 +36,7 @@ input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--
 input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
 button{font:600 16px Barlow,sans-serif;min-height:44px;border-radius:10px;border:0;padding:0 16px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
 button.ghost{background:transparent;color:var(--muted);padding:0 10px;min-height:36px}
+button.ghost svg{width:20px;height:20px;display:block}
 form button{flex:1 1 100%}
 ul{list-style:none;margin:0;padding:0}
 li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line)}
@@ -57,6 +58,7 @@ svg{width:100%;height:auto;display:block}
 </nav>
 <script>
 var KEY="lift:v1",mem=null;
+var ICON='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
 var D0={targets:{protein:150,cal:2200},food:[],exs:[],lifts:[],cardio:[],weights:[]};
 function load(){try{var r=localStorage.getItem(KEY);if(r){return Object.assign({},D0,JSON.parse(r))}}catch(e){}return mem||JSON.parse(JSON.stringify(D0))}
 function save(){mem=S;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -76,14 +78,14 @@ exl.forEach(function(k){var kl=k.toLowerCase();
 var sets=S.lifts.filter(function(x){return x.d===t&&x.ex.toLowerCase()===kl});
 var prev=S.lifts.filter(function(x){return x.ex.toLowerCase()===kl&&x.d<t});var last="";
 if(prev.length){var pd=prev.reduce(function(a,x){return x.d>a?x.d:a},"");var best=prev.filter(function(x){return x.d===pd}).sort(function(a,b){return b.w-a.w||b.r-a.r})[0];last='Last time ('+nice(pd)+'): best set '+best.r+' X '+best.w}
-h+='<div class="card"><div class="mrow"><div class="grp" style="margin-top:0">'+esc(k)+'</div><button class="ghost" data-delex="'+esc(k)+'" aria-label="Remove exercise">Remove</button></div>'+(last?'<div class="note">'+last+'</div>':'')+(sets.length?'<ul>'+sets.map(function(x,i){return '<li><span>Set '+(i+1)+': '+x.r+' X '+x.w+'</span><button class="ghost" data-del="lifts" data-id="'+x.id+'" aria-label="Delete set">Delete</button></li>'}).join("")+'</ul>':'')+'<form data-f="set" style="margin-top:10px"><input type="hidden" name="ex" value="'+esc(k)+'"><label>Reps<input name="r" type="number" inputmode="numeric" min="1" required></label><label>Weight (lb)<input name="w" type="number" inputmode="decimal" min="0" required></label><label>Sets<input name="n" type="number" inputmode="numeric" min="1" max="10" value="1"></label><button>Add set</button></form></div>'});
+h+='<div class="card"><div class="mrow"><div class="grp" style="margin-top:0">'+esc(k)+'</div><button class="ghost" data-delex="'+esc(k)+'" aria-label="Remove exercise">Remove</button></div>'+(last?'<div class="note">'+last+'</div>':'')+(sets.length?'<ul>'+sets.map(function(x,i){return '<li><span>Set '+(i+1)+': '+x.r+' X '+x.w+'</span><button class="ghost" data-del="lifts" data-id="'+x.id+'" aria-label="Delete set">'+ICON+'</button></li>'}).join("")+'</ul>':'')+'<form data-f="set" style="margin-top:10px"><input type="hidden" name="ex" value="'+esc(k)+'"><label>Reps<input name="r" type="number" inputmode="numeric" min="1" required></label><label>Weight (lb)<input name="w" type="number" inputmode="decimal" min="0" required></label><label>Sets<input name="n" type="number" inputmode="numeric" min="1" max="10" value="1"></label><button>Add set</button></form></div>'});
 }
 if(tab==="weight"){
 var ws=S.weights.slice().sort(function(a,b){return a.d<b.d?-1:1}),last10=ws.slice(-30);
 h+='<h1>Weight</h1><p class="sub">'+(ws.length?'Latest: '+ws[ws.length-1].w+' lb on '+nice(ws[ws.length-1].d):'Weigh in the same way each time for a clean trend.')+'</p>'+datebar()+'<div class="card"><form data-f="weight"><label>Weight (lb)<input name="w" type="number" inputmode="decimal" min="0" step="0.1" required></label><button>Save weigh-in</button></form></div>';
 if(last10.length>1){var mn=Math.min.apply(null,last10.map(function(x){return x.w}))-1,mx=Math.max.apply(null,last10.map(function(x){return x.w}))+1,W=320,H=140,pts=last10.map(function(x,i){return [10+i*(W-20)/(last10.length-1),H-12-(x.w-mn)/(mx-mn)*(H-24)]});
 h+='<div class="card"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Weight trend, last '+last10.length+' weigh-ins"><polyline fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" points="'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1)}).join(" ")+'"/>'+pts.map(function(p){return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3" fill="var(--accent)"/>'}).join("")+'<text x="10" y="12" font-size="11" fill="var(--muted)">'+mx.toFixed(0)+'</text><text x="10" y="'+(H-2)+'" font-size="11" fill="var(--muted)">'+mn.toFixed(0)+'</text></svg></div>'}
-h+='<div class="card">'+(ws.length?'<ul>'+ws.slice().reverse().slice(0,14).map(function(x){return '<li><span>'+nice(x.d)+': '+x.w+' lb</span><button class="ghost" data-del="weights" data-id="'+x.id+'" aria-label="Delete weigh-in">Delete</button></li>'}).join("")+'</ul>':'<div class="empty">No weigh-ins yet.</div>')+'</div>';
+h+='<div class="card">'+(ws.length?'<ul>'+ws.slice().reverse().slice(0,14).map(function(x){return '<li><span>'+nice(x.d)+': '+x.w+' lb</span><button class="ghost" data-del="weights" data-id="'+x.id+'" aria-label="Delete weigh-in">'+ICON+'</button></li>'}).join("")+'</ul>':'<div class="empty">No weigh-ins yet.</div>')+'</div>';
 }
 document.getElementById("app").innerHTML=h;
 document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",b.dataset.t===tab)});
@@ -102,7 +104,7 @@ document.addEventListener("change",function(e){if(e.target.id==="sel"&&e.target.
 document.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
 if(b.dataset.t){tab=b.dataset.t;view();window.scrollTo(0,0);if(location.hash!=="#"+tab)location.hash=tab;return}
 if(b.dataset.delex){var dn=b.dataset.delex.toLowerCase();if(confirm("Remove this exercise and its sets for this day?")){S.exs=S.exs.filter(function(x){return !(x.d===sel&&x.ex.toLowerCase()===dn)});S.lifts=S.lifts.filter(function(x){return !(x.d===sel&&x.ex.toLowerCase()===dn)});save();view()}return}
-if(b.dataset.del){var k=b.dataset.del,id=+b.dataset.id;S[k]=S[k].filter(function(x){return x.id!==id});save();view()}});
+if(b.dataset.del){if(!confirm("Delete this entry?"))return;var k=b.dataset.del,id=+b.dataset.id;S[k]=S[k].filter(function(x){return x.id!==id});save();view()}});
 var h0=location.hash.replace("#","");if(["lift","weight"].indexOf(h0)>-1)tab=h0;
 view();
 </script>
