@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lift Log</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lift Log">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f4f0;--surface:#fff;--ink:#1b1f1d;--muted:#5d665f;--line:#d9ded7;--accent:#1f4fd8;--accent-ink:#fff;--good:#1f7a4d;--warn:#b4541a;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181a;--surface:#1f2326;--ink:#eef1ee;--muted:#9aa49d;--line:#31373a;--accent:#6d93ff;--accent-ink:#0d1220;--good:#5fcf94;--warn:#f0985a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15181a;--surface:#1f2326;--ink:#eef1ee;--muted:#9aa49d;--line:#31373a;--accent:#6d93ff;--accent-ink:#0d1220;--good:#5fcf94;--warn:#f0985a;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:520px;margin:0 auto;padding:16px 16px 96px}
+h1{font:700 34px/1 "Barlow Condensed","Arial Narrow",sans-serif;margin:8px 0 2px;letter-spacing:.01em}
+h2{font:700 22px/1.1 "Barlow Condensed","Arial Narrow",sans-serif;margin:22px 0 8px}
+.sub{color:var(--muted);margin:0 0 16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.meter{margin-bottom:14px}.meter:last-child{margin-bottom:0}
+.mrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.big{font:700 38px/1 "Barlow Condensed","Arial Narrow",sans-serif}
+.big small{font:500 15px Barlow,sans-serif;color:var(--muted)}
+.bar{height:10px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:6px;transition:width .3s}
+.bar.over i{background:var(--warn)}
+.note{font-size:14px;color:var(--muted);margin-top:4px}
+form{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--muted);gap:3px;flex:1 1 90px;min-width:0}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;min-height:44px}
+input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+button{font:600 16px Barlow,sans-serif;min-height:44px;border-radius:10px;border:0;padding:0 16px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+button.ghost{background:transparent;color:var(--muted);padding:0 10px;min-height:36px}
+form button{flex:1 1 100%}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line)}
+li:first-child{border-top:0}
+.grp{font-weight:600;margin-top:10px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;background:transparent;color:var(--muted);border-radius:0;min-height:56px;font-size:15px}
+nav button[aria-selected="true"]{color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
+.empty{color:var(--muted);padding:6px 0}
+svg{width:100%;height:auto;display:block}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav role="tablist" aria-label="Sections">
+<button role="tab" data-t="lift">Lift</button>
+<button role="tab" data-t="weight">Weight</button>
+</nav>
+<script>
+var KEY="lift:v1",mem=null;
+var D0={targets:{protein:150,cal:2200},food:[],lifts:[],cardio:[],weights:[]};
+function load(){try{var r=localStorage.getItem(KEY);if(r){return Object.assign({},D0,JSON.parse(r))}}catch(e){}return mem||JSON.parse(JSON.stringify(D0))}
+function save(){mem=S;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+var S=load(),tab="lift",sel=today();
+function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function num(v){var n=parseFloat(v);return isNaN(n)?null:n}
+function nice(d){var p=d.split("-");return new Date(p[0],p[1]-1,p[2]).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}
+function meter(label,val,target,unit){var pct=Math.min(100,Math.round(val/target*100)),over=val>target,left=target-val;
+return '<div class="meter"><div class="mrow"><span>'+label+'</span><span class="big">'+Math.round(val)+'<small> / '+target+unit+'</small></span></div><div class="bar'+(over?' over':'')+'"><i style="width:'+pct+'%"></i></div><div class="note">'+(over?Math.round(-left)+unit+' over target':Math.round(left)+unit+' left')+'</div></div>'}
+function view(){var t=sel,h="";
+if(tab==="lift"){
+var ls=S.lifts.filter(function(x){return x.d===t}),g={};ls.forEach(function(x){(g[x.ex]=g[x.ex]||[]).push(x)});
+var names=[];S.lifts.forEach(function(x){if(names.indexOf(x.ex)<0)names.push(x.ex)});
+h+='<h1>Lift</h1><p class="sub">Log each set. Beat last time by a rep or a little weight.</p>'+datebar()+'<div class="card"><form data-f="lift"><label style="flex-basis:100%">Exercise<input name="ex" list="exs" placeholder="Leg press" required></label><datalist id="exs">'+names.map(function(n){return '<option value="'+esc(n)+'">'}).join("")+'</datalist><label>Weight (lb)<input name="w" type="number" inputmode="decimal" min="0" required></label><label>Reps<input name="r" type="number" inputmode="numeric" min="1" required></label><button>Add set</button></form></div>';
+var ks=Object.keys(g);
+if(!ks.length)h+='<div class="card"><div class="empty">No sets logged for this day. Add one above.</div></div>';
+ks.forEach(function(k){var prev=S.lifts.filter(function(x){return x.ex===k&&x.d<t});var last="";
+if(prev.length){var pd=prev.reduce(function(a,x){return x.d>a?x.d:a},"");var best=prev.filter(function(x){return x.d===pd}).sort(function(a,b){return b.w-a.w||b.r-a.r})[0];last='Last time ('+nice(pd)+'): best set '+best.w+' lb × '+best.r}
+h+='<div class="card"><div class="grp">'+esc(k)+'</div>'+(last?'<div class="note">'+last+'</div>':'')+'<ul>'+g[k].map(function(x,i){return '<li><span>Set '+(i+1)+': '+x.w+' lb × '+x.r+'</span><button class="ghost" data-del="lifts" data-id="'+x.id+'" aria-label="Delete set">Delete</button></li>'}).join("")+'</ul></div>'});
+}
+if(tab==="weight"){
+var ws=S.weights.slice().sort(function(a,b){return a.d<b.d?-1:1}),last10=ws.slice(-30);
+h+='<h1>Weight</h1><p class="sub">'+(ws.length?'Latest: '+ws[ws.length-1].w+' lb on '+nice(ws[ws.length-1].d):'Weigh in the same way each time for a clean trend.')+'</p>'+datebar()+'<div class="card"><form data-f="weight"><label>Weight (lb)<input name="w" type="number" inputmode="decimal" min="0" step="0.1" required></label><button>Save weigh-in</button></form></div>';
+if(last10.length>1){var mn=Math.min.apply(null,last10.map(function(x){return x.w}))-1,mx=Math.max.apply(null,last10.map(function(x){return x.w}))+1,W=320,H=140,pts=last10.map(function(x,i){return [10+i*(W-20)/(last10.length-1),H-12-(x.w-mn)/(mx-mn)*(H-24)]});
+h+='<div class="card"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Weight trend, last '+last10.length+' weigh-ins"><polyline fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" points="'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1)}).join(" ")+'"/>'+pts.map(function(p){return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3" fill="var(--accent)"/>'}).join("")+'<text x="10" y="12" font-size="11" fill="var(--muted)">'+mx.toFixed(0)+'</text><text x="10" y="'+(H-2)+'" font-size="11" fill="var(--muted)">'+mn.toFixed(0)+'</text></svg></div>'}
+h+='<div class="card">'+(ws.length?'<ul>'+ws.slice().reverse().slice(0,14).map(function(x){return '<li><span>'+nice(x.d)+': '+x.w+' lb</span><button class="ghost" data-del="weights" data-id="'+x.id+'" aria-label="Delete weigh-in">Delete</button></li>'}).join("")+'</ul>':'<div class="empty">No weigh-ins yet.</div>')+'</div>';
+}
+document.getElementById("app").innerHTML=h;
+document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",b.dataset.t===tab)});
+}
+function datebar(){return '<div class="card"><label>Date<input type="date" id="sel" value="'+sel+'" max="'+today()+'"></label></div>'}
+function nid(){return Date.now()+Math.floor(Math.random()*1000)}
+document.addEventListener("submit",function(e){var f=e.target.dataset.f;if(!f)return;e.preventDefault();var v=function(n){return e.target.elements[n].value},t=sel;
+if(f==="lift")S.lifts.push({id:nid(),d:t,ex:v("ex").trim(),w:num(v("w")),r:num(v("r"))});
+if(f==="weight"){S.weights=S.weights.filter(function(x){return x.d!==t});S.weights.push({id:nid(),d:t,w:num(v("w"))})}
+save();view()});
+document.addEventListener("change",function(e){if(e.target.id==="sel"&&e.target.value){sel=e.target.value;view()}});
+document.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
+if(b.dataset.t){tab=b.dataset.t;view();window.scrollTo(0,0);if(location.hash!=="#"+tab)location.hash=tab;return}
+if(b.dataset.del){var k=b.dataset.del,id=+b.dataset.id;S[k]=S[k].filter(function(x){return x.id!==id});save();view()}});
+var h0=location.hash.replace("#","");if(["lift","weight"].indexOf(h0)>-1)tab=h0;
+view();
+</script>
+</body>
+</html>
