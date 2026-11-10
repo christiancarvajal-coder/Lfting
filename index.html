@@ -220,6 +220,51 @@ svg {
   height: auto;
 }
 
+h2 {
+  font: 700 22px/1.1 "Barlow Condensed", sans-serif;
+  margin: 0 0 6px;
+}
+
+.hist-ex {
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.hist-ex:first-of-type {
+  margin-top: 6px;
+}
+
+.hist-set {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+button.link {
+  background: transparent;
+  color: var(--accent);
+  padding: 0 4px;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+li button.pick {
+  flex: 1;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+li button.pick span:last-child {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 14px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
@@ -233,6 +278,7 @@ svg {
 
 <nav role="tablist" aria-label="Sections">
   <button role="tab" data-t="lift" aria-selected="true">Lift</button>
+  <button role="tab" data-t="history" aria-selected="false">History</button>
   <button role="tab" data-t="weight" aria-selected="false">Weight</button>
 </nav>
 
@@ -272,8 +318,11 @@ function loadData() {
 }
 
 let S = loadData();
-let tab = location.hash === "#weight" ? "weight" : "lift";
+let tab = ["#weight", "#history"].includes(location.hash)
+  ? location.hash.slice(1)
+  : "lift";
 let sel = today();
+let query = "";
 
 function saveData() {
   try {
@@ -706,10 +755,149 @@ function renderWeight() {
   return html;
 }
 
+function renderHistory() {
+  return `
+    <h1>History</h1>
+    <p class="sub">Search an exercise to see every day you did it.</p>
+
+    <div class="card">
+      <label>
+        Exercise
+        <input
+          id="q"
+          type="search"
+          list="exs-h"
+          placeholder="Search, e.g. Bench press"
+          value="${escapeHTML(query)}"
+          autocomplete="off"
+        >
+      </label>
+
+      <datalist id="exs-h">
+        ${allNames().map(function (name) {
+          return `<option value="${escapeHTML(name)}"></option>`;
+        }).join("")}
+      </datalist>
+    </div>
+
+    <div id="hist">${historyResults()}</div>
+  `;
+}
+
+function historyResults() {
+  const q = query.trim().toLowerCase();
+
+  // Every logged exercise, with the days it was done.
+  const byName = {};
+
+  [...S.exs, ...S.lifts].forEach(function (item) {
+    if (!item.ex || !item.d) return;
+
+    const key = item.ex.toLowerCase();
+
+    if (!byName[key]) byName[key] = { name: canonicalName(item.ex), days: new Set() };
+    byName[key].days.add(item.d);
+  });
+
+  const all = Object.values(byName);
+
+  if (!all.length) {
+    return `<div class="card"><div class="empty">Nothing logged yet. Add exercises on the Lift tab.</div></div>`;
+  }
+
+  // No search yet: list every exercise and when it was last done.
+  if (!q) {
+    all.sort(function (a, b) {
+      return a.name.localeCompare(b.name);
+    });
+
+    return `
+      <div class="card">
+        <h2>All exercises</h2>
+        <ul>
+          ${all.map(function (e) {
+            const days = [...e.days].sort();
+            const last = days[days.length - 1];
+
+            return `
+              <li>
+                <button type="button" class="pick" data-q="${escapeHTML(e.name)}">
+                  <span>${escapeHTML(e.name)}</span>
+                  <span>${days.length} day${days.length === 1 ? "" : "s"} · last ${nice(last)}</span>
+                </button>
+              </li>
+            `;
+          }).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  const matches = all.filter(function (e) {
+    return e.name.toLowerCase().includes(q);
+  });
+
+  if (!matches.length) {
+    return `<div class="card"><div class="empty">No exercises match "${escapeHTML(query.trim())}".</div></div>`;
+  }
+
+  const matchKeys = new Set(matches.map(function (e) {
+    return e.name.toLowerCase();
+  }));
+
+  // Group matching days, newest first.
+  const dates = new Set();
+  matches.forEach(function (e) {
+    e.days.forEach(function (d) { dates.add(d); });
+  });
+
+  const sortedDates = [...dates].sort().reverse();
+
+  return `
+    <p class="note" style="margin:0 0 10px">
+      Done on ${sortedDates.length} day${sortedDates.length === 1 ? "" : "s"}
+    </p>
+
+    ${sortedDates.map(function (date) {
+      const names = dayExercises(date).filter(function (n) {
+        return matchKeys.has(n.toLowerCase());
+      });
+
+      return `
+        <div class="card">
+          <div class="mrow">
+            <h2 style="margin:0">${nice(date)}</h2>
+            <button type="button" class="link" data-go="${date}">Open day</button>
+          </div>
+
+          ${names.map(function (name) {
+            const key = name.toLowerCase();
+            const sets = S.lifts.filter(function (item) {
+              return item.d === date && item.ex.toLowerCase() === key;
+            });
+
+            return `
+              <div class="hist-ex">${escapeHTML(canonicalName(name))}</div>
+              ${sets.length
+                ? sets.map(function (item, i) {
+                    return `<div class="hist-set">Set ${i + 1}: ${item.r} reps × ${item.w} lb</div>`;
+                  }).join("")
+                : `<div class="hist-set">No sets logged</div>`}
+            `;
+          }).join("")}
+        </div>
+      `;
+    }).join("")}
+  `;
+}
+
 function render() {
   const app = document.getElementById("app");
 
-  app.innerHTML = tab === "lift" ? renderLift() : renderWeight();
+  app.innerHTML =
+    tab === "lift" ? renderLift() :
+    tab === "history" ? renderHistory() :
+    renderWeight();
 
   document.querySelectorAll("nav button").forEach(function (button) {
     button.setAttribute(
@@ -804,6 +992,13 @@ document.addEventListener("submit", function (event) {
   render();
 });
 
+document.addEventListener("input", function (event) {
+  if (event.target.id !== "q") return;
+
+  query = event.target.value;
+  document.getElementById("hist").innerHTML = historyResults();
+});
+
 document.addEventListener("change", function (event) {
   if (event.target.id !== "sel") return;
 
@@ -829,6 +1024,22 @@ document.addEventListener("click", function (event) {
 
     history.replaceState(null, "", "#" + tab);
 
+    render();
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  if (button.dataset.q) {
+    query = button.dataset.q;
+    render();
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  if (button.dataset.go) {
+    sel = button.dataset.go;
+    tab = "lift";
+    history.replaceState(null, "", "#lift");
     render();
     window.scrollTo(0, 0);
     return;
